@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 
-// Ensure DNS resolvers work reliably for mongodb+srv URLs on Windows & serverless
+// Ensure DNS resolvers work reliably for mongodb+srv URLs
 try {
   dns.setServers(['8.8.8.8', '8.8.4.4']);
 } catch {
@@ -14,7 +14,12 @@ if (!cached) {
 }
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/skywork_hrms';
+  const uri = process.env.MONGODB_URI || (process.env.VERCEL ? null : 'mongodb://127.0.0.1:27017/skywork_hrms');
+
+  if (!uri) {
+    console.warn('⚠️ MONGODB_URI environment variable is not configured!');
+    return null;
+  }
 
   if (cached.conn && mongoose.connection.readyState === 1) {
     return cached.conn;
@@ -23,6 +28,8 @@ const connectDB = async () => {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
     };
     cached.promise = mongoose.connect(uri, opts).then((mongooseInstance) => {
       console.log(`✅ MongoDB Connected: ${mongooseInstance.connection.host}/${mongooseInstance.connection.name}`);
@@ -36,7 +43,6 @@ const connectDB = async () => {
   } catch (error) {
     cached.promise = null;
     console.error(`❌ MongoDB Connection Error: ${error.message}`);
-    console.log('⚠️  Server will continue without database. Data will not persist.');
     return null;
   }
 };

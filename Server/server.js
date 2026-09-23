@@ -120,21 +120,6 @@ if (process.env.NODE_ENV !== 'test') {
 // Static files for uploaded documents & avatars
 app.use('/uploads', express.static(uploadsDir));
 
-// DB Middleware for Serverless / Vercel execution
-let adminSeeded = false;
-app.use(async (req, res, next) => {
-  try {
-    const conn = await connectDB();
-    if (conn && !adminSeeded) {
-      adminSeeded = true;
-      ensureSuperAdmin().catch(console.error);
-    }
-  } catch (err) {
-    console.error('DB middleware error:', err);
-  }
-  next();
-});
-
 // Root Route
 app.get('/', (req, res) => {
   res.json({
@@ -152,7 +137,23 @@ app.get('/api/health', (req, res) => {
     uptime: `${Math.floor(process.uptime())}s`,
     version: '1.0.0',
     service: 'Skywork Enterprise HRMS API',
+    database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
   });
+});
+
+// DB Middleware for Serverless / Vercel execution
+let adminSeeded = false;
+app.use(async (req, res, next) => {
+  try {
+    const conn = await connectDB();
+    if (conn && !adminSeeded) {
+      adminSeeded = true;
+      ensureSuperAdmin().catch(console.error);
+    }
+  } catch (err) {
+    console.error('DB middleware error:', err);
+  }
+  next();
 });
 
 // API Routes
