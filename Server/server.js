@@ -41,10 +41,15 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Ensure uploads folder exists
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// Ensure uploads folder exists safely (support serverless /tmp)
+const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadsDir = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, 'uploads');
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem fallback
 }
 
 // Initialize Express app & HTTP server
@@ -64,38 +69,27 @@ if (process.env.CLIENT_URL) {
   allowedOrigins.push(process.env.CLIENT_URL);
 }
 
-// Setup Socket.io
-const io = new SocketIOServer(server, {
-  cors: {
-    origin: (origin, callback) => {
-      // allow requests with no origin (like mobile apps, curl, postman)
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      return callback(null, true); // Dev-friendly permissive CORS
+// Setup Socket.io safely
+let io = null;
+try {
+  io = new SocketIOServer(server, {
+    cors: {
+      origin: true,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+      credentials: true,
     },
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    credentials: true,
-  },
-});
-
-// Pass io to express app
-app.set('io', io);
-
-// Socket.io Real-time Event handlers
-io.on('connection', (socket) => {
-  console.log(`🔌 Client connected: ${socket.id}`);
-
-  // Join user room (e.g. employeeId or role)
-  socket.on('join', (room) => {
-    socket.join(room);
-    console.log(`👤 Socket ${socket.id} joined room: ${room}`);
   });
 
-  socket.on('disconnect', () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
+  io.on('connection', (socket) => {
+    socket.on('join', (room) => {
+      socket.join(room);
+    });
   });
-});
+
+  app.set('io', io);
+} catch (err) {
+  console.warn('Socket.io skipped in serverless environment');
+}
 
 // Middleware
 app.use(
@@ -125,6 +119,30 @@ if (process.env.NODE_ENV !== 'test') {
 
 // Static files for uploaded documents & avatars
 app.use('/uploads', express.static(uploadsDir));
+
+// DB Middleware for Serverless / Vercel execution
+let adminSeeded = false;
+app.use(async (req, res, next) => {
+  try {
+    const conn = await connectDB();
+    if (conn && !adminSeeded) {
+      adminSeeded = true;
+      ensureSuperAdmin().catch(console.error);
+    }
+  } catch (err) {
+    console.error('DB middleware error:', err);
+  }
+  next();
+});
+
+// Root Route
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    message: 'Skywork Enterprise HRMS Backend is running successfully!',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Health Check API
 app.get('/api/health', (req, res) => {
@@ -185,7 +203,7 @@ const gracefulShutdown = (signal) => {
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-// Start Server
+// Start Server (only when not running in Vercel serverless)
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
@@ -195,6 +213,7 @@ const startServer = async () => {
     if (conn) {
       console.log('✅ Database connected successfully.');
       await ensureSuperAdmin();
+      adminSeeded = true;
     }
 
     server.listen(PORT, () => {
@@ -215,7 +234,9 @@ const startServer = async () => {
   }
 };
 
-startServer();
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  startServer();
+}
 
 export { app, server, io };
 export default app;

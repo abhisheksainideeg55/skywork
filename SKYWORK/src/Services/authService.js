@@ -4,9 +4,10 @@
  * Only JWT token and session info are stored in localStorage for session persistence.
  */
 
+import API_BASE_URL from "./apiConfig.js";
+
 const SESSION_KEY = "skywork_session";
 const TOKEN_KEY = "skywork_jwt_token";
-const API_BASE_URL = "http://localhost:5000/api";
 
 export const login = async (identifier, password) => {
   const cleanId = String(identifier || '').trim();

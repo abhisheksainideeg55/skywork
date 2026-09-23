@@ -4,7 +4,8 @@
  * All Context providers use this to communicate with the backend.
  */
 
-const API_BASE = "http://localhost:5000/api";
+import API_BASE from "./apiConfig.js";
+
 const TOKEN_KEY = "skywork_jwt_token";
 const ADMIN_KEY = "skywork_enterprise_2026";
 

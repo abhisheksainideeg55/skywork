@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:5000/api/attendance/smart";
+import API_BASE_ROOT from "./apiConfig.js";
+
+const API_BASE = `${API_BASE_ROOT}/attendance/smart`;
 
 const getHeaders = () => {
   const token = localStorage.getItem("skywork_jwt_token");

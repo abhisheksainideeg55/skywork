@@ -5,10 +5,20 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isVercel = Boolean(process.env.VERCEL || process.env.VERCEL_ENV || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const uploadDir = isVercel ? path.join('/tmp', 'uploads') : path.join(__dirname, '..', 'uploads');
+
+try {
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+} catch {
+  // Read-only filesystem fallback
+}
+
 // Storage configuration
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '..', 'uploads');
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
