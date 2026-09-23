@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 40" fill="none">
+  <defs>
+    <linearGradient id="swGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5" />
+      <stop offset="100%" stop-color="#06B6D4" />
+    </linearGradient>
+    <linearGradient id="swGradAccent" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+  </defs>
+  <!-- Icon Mark -->
+  <rect x="2" y="4" width="32" height="32" rx="9" fill="url(#swGrad)" />
+  <path d="M10 24L18 12L26 24" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="18" cy="20" r="2.5" fill="#38BDF8" />
+  
+  <!-- Text: Skywork -->
+  <text x="44" y="26" font-family="'Plus Jakarta Sans', system-ui, -apple-system, sans-serif" font-size="20" font-weight="800" fill="#0F172A" letter-spacing="-0.5">SKY<tspan fill="#4F46E5">WORK</tspan></text>
+</svg>
